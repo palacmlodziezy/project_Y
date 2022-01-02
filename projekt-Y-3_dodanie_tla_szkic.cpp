@@ -1,4 +1,4 @@
-﻿#include<SDL.h>
+#include<SDL.h>
 #include<SDL_image.h>
 #include<iostream>
 
@@ -10,6 +10,7 @@ SDL_Texture* LoadTexture(std::string filePath, SDL_Renderer* renderTarget)
 		std::cout << "Error" << std::endl;
 	else
 	{
+		// Create a texture from an existing surface
 		texture = SDL_CreateTextureFromSurface(renderTarget, surface);
 		if (texture == NULL)
 			std::cout << "Error" << std::endl;
@@ -97,56 +98,64 @@ int main(int argc, char* argv[])
 	SDL_Texture* currentImage1 = nullptr;
 	SDL_Renderer* renderTarget = nullptr;
 	SDL_Rect playerRect;
+	// position of the player
 	SDL_Rect playerPosition;
 	playerPosition.x = playerPosition.y = 0;
 	playerPosition.w = playerPosition.h = 32;
 	int frameWidth, frameHeight;
 	int textureWidth, textureHeight;
+	// player frame counter
 	int frameTime = 0;
-	// wspólrzêdne ludzika w oknie
-	int x = 0; // emabula
-	int y = 0; // emabula
+	// time of exposition of the player's frame
+	// (speed of player's animation)
+	const int PLAYER_ANIMATION_SPEED = 15;
+	// player coordinates 
+	int x = 0;
+	int y = 0;
 
 	SDL_Init(SDL_INIT_VIDEO);
 
 	int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
 	if (IMG_Init(imgFlags) != imgFlags)
 		std::cout << "Error: " << IMG_GetError() << std::endl;
-
-	window = SDL_CreateWindow("SDL CodingMadeEasy Series", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
+	
+	// Create a window with the specified position, dimensions, and flags.
+	window = SDL_CreateWindow("SDL CodingMadeEasy Series", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_SHOWN);
+	// Create a 2D rendering context for a window.
 	renderTarget = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	// Create a texture from an existing surface (image)
 	currentImage = LoadTexture("sprite-sheet.png", renderTarget);
-	currentImage1 = LoadTexture("mikolaj1.png", renderTarget);
+	currentImage1 = LoadTexture("tlo.png", renderTarget);
 
+	// gets textureWidth and textureHeight from texture of the player	
 	SDL_QueryTexture(currentImage, NULL, NULL, &textureWidth, &textureHeight);
 
+	// wycinamy fragment z pliku z animacjami ludzika sprite-sheet.png: 3 obazki  x 4 obrazki
+	// w zależności od tego który fragment weźmiemy ludzik chodzi w prawo, lewo, do przodu, do tyłu
+	
+	// gets dimensions of the player's frame from player's texture
 	frameWidth = textureWidth / 3;
 	frameHeight = textureHeight / 4;
 
-
-	// wycinamy fragment z pliku z animacjami ludzika sprite-sheet.png: 3 obazki  x 4 obrazki
-	// w zale¿noœci od tego który fragment we¿miemy ludzok chodzi w prawo, lewo, do przodu, do ty³u
-	//playerRect.x = playerRect.y = 0;
-
-
-
-	SDL_SetRenderDrawColor(renderTarget, 0xFF, 0, 0, 0xFF);
+	// Set the color used for drawing operations (Rect, Line and Clear)
+	//SDL_SetRenderDrawColor(renderTarget, 0xFF, 0, 0, 0xFF);
 
 	bool isRunning = true;
 	SDL_Event ev;
 
-	// zmienna przełaczajaca currentImage oraz currentImage1
-	int flaga = 0;
-
+	// game loop
 	while (isRunning)
 	{
+		// event loop
 		while (SDL_PollEvent(&ev) != 0)
 		{
 			// Getting the events
+			//
+			// event of pressing the cross
 			if (ev.type == SDL_QUIT)
 				isRunning = false;
 
-			// ruch ludzika
+			// player's move by keyboard
 			else if (ev.type == SDL_KEYDOWN)
 			{
 				switch (ev.key.keysym.sym)
@@ -181,7 +190,7 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			//zatrzymanie ludzika
+			// player's stop
 			else if (ev.type == SDL_KEYUP)
 			{
 				switch (ev.key.keysym.sym)
@@ -210,40 +219,41 @@ int main(int argc, char* argv[])
 
 		}
 
+		// inkrementing frame counter 
 		frameTime++;
 
-		if (frameTime >= 15)
+		// changing frame of animation
+		if (frameTime >= PLAYER_ANIMATION_SPEED)
 		{
+			// reset frame counter
 			frameTime = 0;
+			// next frame of animation
 			playerRect.x += frameWidth;
+			// we can't go out of texture
+			// so we reset animation's position
 			if (playerRect.x >= textureWidth)
+				// first frame of animation
 				playerRect.x = 0;
 		}
 
-		//if (x = 5000)
-		//{
-		//	x = ;
-		//
-		//}
+		// update player's position
+		playerPosition.x = x;
+		playerPosition.y = y;
 
-		playerPosition.x = x;   //emabula
-		playerPosition.y = y;   //emabula
+		// Clear the current rendering target with the drawing color
+		//SDL_RenderClear(renderTarget);
 
-		SDL_RenderClear(renderTarget);
+		// Copy a portion of the texture to the current rendering target
+		// in this case copy background image
+		SDL_RenderCopy(renderTarget, currentImage1, NULL, NULL);
+		// copy playerRect to target at playerPosition
+		SDL_RenderCopy(renderTarget, currentImage, &playerRect, &playerPosition);
 		
-		// przełaczanie obrazka tła oraz sprita(ludzika)
-		if (flaga) {
-			SDL_RenderCopy(renderTarget, currentImage1, NULL, NULL);
-			flaga = 0;
-		}
-		else {
-			SDL_RenderCopy(renderTarget, currentImage, &playerRect, &playerPosition);
-			flaga = 1;
-		}
-		// SDL_RenderCopy(renderTarget, currentImage, &playerRect, &playerPosition);
+		// Update the screen with any rendering performed since the previous call
 		SDL_RenderPresent(renderTarget);
 	}
 
+	// clean
 	SDL_DestroyWindow(window);
 	SDL_DestroyTexture(currentImage);
 	SDL_DestroyRenderer(renderTarget);
@@ -255,3 +265,4 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
+
